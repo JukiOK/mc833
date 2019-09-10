@@ -49,6 +49,7 @@ int main (int argc, char **argv) {
 
    struct sockaddr_in clientaddr; // estrutura para armazenar os dados recebidos pelo getpeername
    socklen_t addrlen = sizeof(clientaddr);
+   int n;
    for ( ; ; ) {
       if ((connfd = accept(listenfd, (struct sockaddr *) NULL, NULL)) == -1 ) {  // accept extrai a primeira conexão do socket listenfd, cria novo socket conectado e retorna descritor de arquivo do novo socket
          perror("accept");
@@ -64,9 +65,15 @@ int main (int argc, char **argv) {
       printf("Porta: %d\n\n", (int) ntohs(clientaddr.sin_port)); // converte unsigned short da porta de clientaddr da ordem de byte da Internet para ordem de byte do host
 
       // Escreve a data em um buffer, e envia para cliente connfd
-      ticks = time(NULL);
-      snprintf(buf, sizeof(buf), "%.24s\r\n", ctime(&ticks));
-      write(connfd, buf, strlen(buf));
+      while ( (n = read(connfd, buf, MAXDATASIZE)) > 0) {
+	 buf[n] = 0;
+	 printf("%s\n", buf);
+	 //if (fputs(buf, stdout) == EOF) {
+	   // exit(1);
+	 //}
+      }
+
+      
 
       close(connfd);
    }

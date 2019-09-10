@@ -19,6 +19,11 @@ int main (int argc, char **argv) {
    char   buf[MAXDATASIZE];
    time_t ticks;
 
+   if (argc != 2) {
+      printf("Por favor defina a porta que será utilizada!\n");
+      exit(1);
+   }
+
    if ((listenfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
       perror("socket");
       exit(1);
@@ -27,7 +32,10 @@ int main (int argc, char **argv) {
    bzero(&servaddr, sizeof(servaddr)); // Apaga sizeof(servaddr) bytes de servaddr colocando '\0' em cada um deles
    servaddr.sin_family      = AF_INET;
    servaddr.sin_addr.s_addr = htonl(INADDR_ANY); //Inverte de da ordem de byte do host (little endian) para a ordem de byte de rede (big endian) para um UL
-   servaddr.sin_port        = htons(8080); // Mesma coisa para um short
+   
+   short port = atoi(argv[1]);
+
+   servaddr.sin_port = htons(port); // Mesma coisa para um short
 
    if (bind(listenfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) == -1) { // "Associa um nome a um socket"
       perror("bind");

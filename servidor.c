@@ -131,7 +131,10 @@ int main (int argc, char **argv) {
             }
 
             if(read_size == 0) {
-                printf("Client disconnected\n");
+		pV4Addr = (struct sockaddr_in *)&clientaddr;
+	    	ipAddr = pV4Addr->sin_addr;
+		inet_ntop(AF_INET, &ipAddr, address, INET_ADDRSTRLEN);
+                printf("Client disconnected -> %s:%d\n", address, ntohs(pV4Addr->sin_port));
                 fflush(stdout);
             }
 

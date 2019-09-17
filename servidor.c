@@ -60,7 +60,7 @@ int main (int argc, char **argv) {
 
     if (argc != 2) {
       printf("%d", argc);
-      printf("Por favor defina a porta que será utilizada!\n");
+      printf("Define which port this server will use!\n");
       exit(1);
     }
 
@@ -87,11 +87,11 @@ int main (int argc, char **argv) {
 
 	bzero(&clientaddr, sizeof(clientaddr));
         connfd = Accept(listenfd, (struct sockaddr *) &clientaddr, &c);
+        
 	pV4Addr = (struct sockaddr_in *)&clientaddr;
 	ipAddr = pV4Addr->sin_addr;
 	inet_ntop(AF_INET, &ipAddr, address, INET_ADDRSTRLEN);
         printf("Connection accepted -> %s:%d\n", address, ntohs(pV4Addr->sin_port));
-        
 	if ( (pid = fork()) == 0) {
             Close(listenfd);
 

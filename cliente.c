@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
    if (argc != 3) {
       strcpy(error,"uso: ");
       strcat(error,argv[0]);
-      strcat(error," <IPaddress>");
+      strcat(error,"Server's IP and/or port missing!");
       perror(error);
       exit(1);
    }
@@ -71,9 +71,9 @@ int main(int argc, char **argv) {
    }
 
    // inet_ntoa converte o endereço ipv4 da estrutura servaddr_returned para uma string contendo o endereço ipv4 na notação padrão
-   printf("Conexão com o servidor estabelecida: %s\n", inet_ntoa(servaddr_returned.sin_addr));
+   printf("Connection with server established: %s\n", inet_ntoa(servaddr_returned.sin_addr));
    // ntohs converte a porta em sin_port da ordem de bytes da rede para a ordem padrão do sistema de um short
-   printf("Porta: %d\n\n", (int) ntohs(servaddr_returned.sin_port));
+   printf("Port: %d\n\n", (int) ntohs(servaddr_returned.sin_port));
 
    // Fim do código adicionado
 
@@ -85,13 +85,13 @@ int main(int argc, char **argv) {
      write(sockfd, command, strlen(command));
      command[strcspn(command, "\n")] = 0;
      if(strcmp(command, "exit")==0){
-	     printf("Fechar conexão\n");
+	     printf("Closing connection\n");
 	     close(sockfd);
 	     exit(0);
      }
      if( (n = read(sockfd , recvline , MAXLINE)) > 0 ) {
          recvline[n] = 0;
-         printf("Resposta do servidor:\n");
+         printf("Server's response:\n");
          printf("%s\n", recvline);
      }
    }

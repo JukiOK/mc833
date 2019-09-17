@@ -50,10 +50,13 @@ void Close(int s) {
 
 int main (int argc, char **argv) {
     int    listenfd, connfd, pid, read_size;
+    socklen_t c;
     struct sockaddr_in servaddr, clientaddr;
     char   buf[MAXDATASIZE];
     FILE *fp;
-    char path[MAXDATASIZE], outt[MAXDATASIZE];
+    char path[MAXDATASIZE], outt[MAXDATASIZE], address[INET_ADDRSTRLEN];
+    struct in_addr ipAddr;
+    struct sockaddr_in *pV4Addr;
 
     if (argc != 2) {
       printf("%d", argc);
@@ -81,9 +84,15 @@ int main (int argc, char **argv) {
     printf("Awaiting for clients...\n");
 
     while (1) {
-        connfd = Accept(listenfd, (struct sockaddr *) NULL, NULL);
-        printf("Connection accepted\n");
-        if ( (pid = fork()) == 0) {
+
+	bzero(&clientaddr, sizeof(clientaddr));
+        connfd = Accept(listenfd, (struct sockaddr *) &clientaddr, &c);
+	pV4Addr = (struct sockaddr_in *)&clientaddr;
+	ipAddr = pV4Addr->sin_addr;
+	inet_ntop(AF_INET, &ipAddr, address, INET_ADDRSTRLEN);
+        printf("Connection accepted -> %s:%d\n", address, ntohs(pV4Addr->sin_port));
+        
+	if ( (pid = fork()) == 0) {
             Close(listenfd);
 
             while( (read_size = read(connfd , buf , MAXDATASIZE)) > 0 ) {

@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
    if (argc != 3) {
       strcpy(error,"uso: ");
       strcat(error,argv[0]);
-      strcat(error,"Server's IP and/or port missing!");
+      strcat(error," Server's IP and/or port missing!");
       perror(error);
       exit(1);
    }

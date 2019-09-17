@@ -8,6 +8,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <time.h>
 
 #define MAXDATASIZE 20000
 
@@ -48,8 +49,32 @@ void Close(int s) {
     close(s);
 }
 
+void Log(char *ip, int port, int state) {
+    time_t t = time(NULL);
+    struct tm *tm = localtime(&t);
+    char date[64];
+    strftime(date, sizeof(date), "%c", tm);
+
+    FILE *fptr;
+    fptr = fopen("server_log.txt", "a");
+    if(fptr == NULL){
+      printf("Error!");
+      exit(1);
+    }
+
+    if (state == 0)
+        fprintf(fptr,"Conexão aceita...%s: %s %d\n", date, ip, port);
+    else
+        fprintf(fptr,"Conexão encerrada...%s: %s %d\n", date, ip, port);
+    fclose(fptr);
+}
+
+void Print(char *ip, int port, char *buf) {
+    printf("Command from %s:%d ->\n %s\n", ip, port, buf);
+}
+
 int main (int argc, char **argv) {
-    int    listenfd, connfd, pid, read_size;
+    int    listenfd, connfd, pid, read_size, port;
     socklen_t c;
     struct sockaddr_in servaddr, clientaddr;
     char   buf[MAXDATASIZE];
@@ -70,9 +95,7 @@ int main (int argc, char **argv) {
     servaddr.sin_family = AF_INET;
     servaddr.sin_addr.s_addr = htonl(INADDR_ANY); //Inverte de da ordem de byte do host (little endian) para a ordem de byte de rede (big endian) para um UL
 
-    short port = atoi(argv[1]);
-
-    servaddr.sin_port = htons(port); // Mesma coisa para um short
+    servaddr.sin_port = htons(atoi(argv[1])); // Mesma coisa para um short
 
     Bind(listenfd, (struct sockaddr *)&servaddr, sizeof(servaddr));
 
@@ -84,20 +107,22 @@ int main (int argc, char **argv) {
     printf("Awaiting for clients...\n");
 
     while (1) {
-
-	bzero(&clientaddr, sizeof(clientaddr));
+    	bzero(&clientaddr, sizeof(clientaddr));
         connfd = Accept(listenfd, (struct sockaddr *) &clientaddr, &c);
-        
-	pV4Addr = (struct sockaddr_in *)&clientaddr;
-	ipAddr = pV4Addr->sin_addr;
-	inet_ntop(AF_INET, &ipAddr, address, INET_ADDRSTRLEN);
-        printf("Connection accepted -> %s:%d\n", address, ntohs(pV4Addr->sin_port));
-	if ( (pid = fork()) == 0) {
+
+    	pV4Addr = (struct sockaddr_in *)&clientaddr;
+    	ipAddr = pV4Addr->sin_addr;
+    	inet_ntop(AF_INET, &ipAddr, address, INET_ADDRSTRLEN);
+        port = ntohs(pV4Addr->sin_port);
+        printf("Connection accepted -> %s:%d\n", address, port);
+        Log(address, port, 0);
+        if ( (pid = fork()) == 0) {
             Close(listenfd);
 
             while( (read_size = read(connfd , buf , MAXDATASIZE)) > 0 ) {
                 buf[read_size] = 0;
-                printf("%s\n", buf);
+                Print(address, port, buf);
+                // printf("%s\n", buf);
 
                 /* Open the command for reading. */
                 fp = popen(buf, "r");
@@ -131,9 +156,10 @@ int main (int argc, char **argv) {
             }
 
             if(read_size == 0) {
-		pV4Addr = (struct sockaddr_in *)&clientaddr;
-	    	ipAddr = pV4Addr->sin_addr;
-		inet_ntop(AF_INET, &ipAddr, address, INET_ADDRSTRLEN);
+                Log(address, port, 1);
+                pV4Addr = (struct sockaddr_in *)&clientaddr;
+                ipAddr = pV4Addr->sin_addr;
+                inet_ntop(AF_INET, &ipAddr, address, INET_ADDRSTRLEN);
                 printf("Client disconnected -> %s:%d\n", address, ntohs(pV4Addr->sin_port));
                 fflush(stdout);
             }

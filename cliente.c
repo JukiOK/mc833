@@ -12,6 +12,29 @@
 
 #define MAXLINE 4096
 
+int Socket(int family, int type, int flags){
+	int sockfd;
+	if((sockfd = socket(family, type, flags)) < 0){
+		perror("socket error");
+		exit(1);
+	}
+	return sockfd;
+}
+
+void Inet_pton(int family, char *src, void *dst){
+	if(inet_pton(family, src, &dst) <= 0){
+		perror("inet_pton error");
+		exit(1);
+	}
+}
+
+void Connect(int sockfd, struct sockaddr *addr, socklen_t addrlen){
+	if(connect(sockfd, addr, addrlen) < 0){
+		perror("connect error");
+		exit(1);
+	}
+}
+
 int main(int argc, char **argv) {
    int    sockfd, n;
    char   recvline[MAXLINE + 1];
@@ -29,25 +52,16 @@ int main(int argc, char **argv) {
    }
 
    // cria um endpoint para comunicação e retorna um file descriptor (sockfd) que referencia esse socket.
-   if ( (sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-      perror("socket error");
-      exit(1);
-   }
+   sockfd = Socket(AF_INET, SOCK_STREAM, 0);
 
    bzero(&servaddr, sizeof(servaddr)); // Apaga sizeof(servaddr) bytes de servaddr colocando '\0' em cada um dos bytes da estrutura do servidor que será preechida
    servaddr.sin_family = AF_INET; // Protocolo IPv4
    short port = atoi(argv[2]);
    servaddr.sin_port   = htons(port); // Recebe porta que vai conectar
-   if (inet_pton(AF_INET, argv[1], &servaddr.sin_addr) <= 0) { // Converte a string passada como argumento do programa na estrutura de formato IPv4 e preenche essa estrutura no campo sinaddr de servaddr
-      perror("inet_pton error");
-      exit(1);
-   }
+   Inet_pton(AF_INET, argv[1], &servaddr.sin_addr); // Converte a string passada como argumento do programa na estrutura de formato IPv4 e preenche essa estrutura no campo sinaddr de servaddr
 
    // Conecta o socket referenciado por sockfd no endereco especificado por servaddr
-   if (connect(sockfd, (struct sockaddr *) &servaddr, sizeof(servaddr)) < 0) {
-      perror("connect error");
-      exit(1);
-   }
+   Connect(sockfd, (struct sockaddr *) &servaddr, sizeof(servaddr));
 
    // Código adicionado
    // Atribui o endereco ao qual o sockfd esta associado ao buffer apontado por servaddr_returned de tamanho servaddr_len
@@ -69,6 +83,13 @@ int main(int argc, char **argv) {
    while (1) {
      fgets (command, MAXLINE, stdin);
      write(sockfd, command, strlen(command));
+     int slen = strlen(command);
+     command[strcspn(command, "\n")] = 0;
+     if(strcmp(command, "exit")==0){
+	     printf("Fechar conesão");
+	     close(sockfd);
+	     exit(0);
+     }
      if( (n = read(sockfd , recvline , MAXLINE)) > 0 ) {
          recvline[n] = 0;
          printf("Resposta do servidor:\n");

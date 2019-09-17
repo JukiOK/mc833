@@ -81,7 +81,7 @@ int main (int argc, char **argv) {
     printf("Awaiting for clients...\n");
 
     while (1) {
-        connfd = Accept(listenfd, (struct sockaddr *)&clie, NULL);
+        connfd = Accept(listenfd, (struct sockaddr *) NULL, NULL);
         printf("Connection accepted\n");
         if ( (pid = fork()) == 0) {
             Close(listenfd);

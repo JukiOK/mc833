@@ -83,10 +83,9 @@ int main(int argc, char **argv) {
    while (1) {
      fgets (command, MAXLINE, stdin);
      write(sockfd, command, strlen(command));
-     int slen = strlen(command);
      command[strcspn(command, "\n")] = 0;
      if(strcmp(command, "exit")==0){
-	     printf("Fechar conesão");
+	     printf("Fechar conexão\n");
 	     close(sockfd);
 	     exit(0);
      }

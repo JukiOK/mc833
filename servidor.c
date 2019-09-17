@@ -49,7 +49,7 @@ void Close(int s) {
 }
 
 int main (int argc, char **argv) {
-    int    listenfd, connfd, c, pid, read_size;
+    int    listenfd, connfd, pid, read_size;
     struct sockaddr_in servaddr, clientaddr;
     char   buf[MAXDATASIZE];
     FILE *fp;
@@ -100,16 +100,25 @@ int main (int argc, char **argv) {
 
                 /* Read the output a line at a time - output it. */
                 while (fgets(path, sizeof(path)-1, fp) != NULL) {
-                    // printf("%s", path);
-                    strcat(outt, path);
+                  strcat(outt, path);
                 }
 
                 /* close */
-                pclose(fp);
-
+                int status = pclose(fp);
+                if(status==0){
+                  if(outt[0]=='\0'){
+                    outt[0] = ' ';
+                  }
+                }else{
+                  if(outt[0]=='\0'){
+                    buf[strcspn(buf, "\n")] = 0;
+                    strcpy(outt, strcat(buf, ": not found"));
+                  }
+                }
                 write(connfd , outt , strlen(outt));
-                outt[0] = 0;
-                path[0] = 0;
+                memset(outt, 0, strlen(outt));
+
+                path[0] = '\0';
             }
 
             if(read_size == 0) {

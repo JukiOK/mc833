@@ -6,77 +6,122 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
-#include <time.h>
 #include <unistd.h>
 #include <arpa/inet.h>
 
-#define LISTENQ 10
-#define MAXDATASIZE 100
+#define MAXDATASIZE 20000
 
-int main (int argc, char **argv) {
-   int    listenfd, connfd;
-   struct sockaddr_in servaddr;
-   char   buf[MAXDATASIZE];
-   time_t ticks;
-
-   if (argc != 2) {
-     printf("%d", argc);
-      printf("Por favor defina a porta que será utilizada!\n");
-      exit(1);
-   }
-
-   if ((listenfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+int Socket(int family, int type, int flags) {
+   int sockfd;
+   if ((sockfd = socket(family, type, flags)) < 0) {
       perror("socket");
       exit(1);
-   }
+   } else
+      return sockfd;
+}
 
-   bzero(&servaddr, sizeof(servaddr)); // Apaga sizeof(servaddr) bytes de servaddr colocando '\0' em cada um deles
-   servaddr.sin_family      = AF_INET;
-   servaddr.sin_addr.s_addr = htonl(INADDR_ANY); //Inverte de da ordem de byte do host (little endian) para a ordem de byte de rede (big endian) para um UL
-
-   short port = atoi(argv[1]);
-
-   servaddr.sin_port = htons(port); // Mesma coisa para um short
-
-   if (bind(listenfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) == -1) { // "Associa um nome a um socket"
+void Bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen) {
+   if (bind(sockfd, addr, addrlen) == -1) { // "Associa um nome a um socket"
       perror("bind");
       exit(1);
    }
+}
 
-   if (listen(listenfd, LISTENQ) == -1) { // Torna um socket em um socket passivo (socket usado para aceitar conexões por meio do accept())
-      perror("listen"); // LISTENQ é o tamanho máximo da fila de conexões
+int Accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen) {
+    //accept connection from an incoming client
+    int acceptedfd = accept(sockfd, addr, addrlen);
+    if (acceptedfd < 0) {
+    	perror("accept");
+    	exit(1);
+    }
+    return acceptedfd;
+}
+
+void Listen(int sockfd) {
+    if (listen(sockfd, 10) == -1) {
+        perror("listen");
+        exit(1);
+    }
+}
+
+void Close(int s) {
+    close(s);
+}
+
+int main (int argc, char **argv) {
+    int    listenfd, connfd, c, pid, read_size;
+    struct sockaddr_in servaddr, clientaddr;
+    char   buf[MAXDATASIZE];
+    FILE *fp;
+    char path[MAXDATASIZE], outt[MAXDATASIZE];
+
+    if (argc != 2) {
+      printf("%d", argc);
+      printf("Por favor defina a porta que será utilizada!\n");
       exit(1);
-   }
+    }
 
-   struct sockaddr_in clientaddr; // estrutura para armazenar os dados recebidos pelo getpeername
-   socklen_t addrlen = sizeof(clientaddr);
-   int n;
-   for ( ; ; ) {
-      if ((connfd = accept(listenfd, (struct sockaddr *) NULL, NULL)) == -1 ) {  // accept extrai a primeira conexão do socket listenfd, cria novo socket conectado e retorna descritor de arquivo do novo socket
-         perror("accept");
-         exit(1);
-      }
+    listenfd = Socket(AF_INET, SOCK_STREAM, 0);
 
-      if (getpeername(connfd, (struct sockaddr *) &clientaddr, &addrlen) < 0) { // retorna endereço do par conectado em connfd, em um buffer apontado por clientaddr
-      	 perror("getpeername");
-      	 exit(1);
-      }
+    bzero(&servaddr, sizeof(servaddr)); // Apaga sizeof(servaddr) bytes de servaddr colocando '\0' em cada um deles
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = htonl(INADDR_ANY); //Inverte de da ordem de byte do host (little endian) para a ordem de byte de rede (big endian) para um UL
 
-      printf("Nova conexão de: %s\n", inet_ntoa(clientaddr.sin_addr)); // inet_ntoa converte o endereço de clientaddr IPv4 para a string IPv4 com notaçãp padrão
-      printf("Porta: %d\n\n", (int) ntohs(clientaddr.sin_port)); // converte unsigned short da porta de clientaddr da ordem de byte da Internet para ordem de byte do host
+    short port = atoi(argv[1]);
 
-      // Escreve a data em um buffer, e envia para cliente connfd
-      while ( (n = read(connfd, buf, MAXDATASIZE)) > 0) {
-	 buf[n] = 0;
-	 printf("%s\n", buf);
-	 //if (fputs(buf, stdout) == EOF) {
-	   // exit(1);
-	 //}
-      }
+    servaddr.sin_port = htons(port); // Mesma coisa para um short
 
+    Bind(listenfd, (struct sockaddr *)&servaddr, sizeof(servaddr));
 
+    printf("Bind successfull\n");
 
-      close(connfd);
-   }
-   return(0);
+    //Queue size doesn't matter
+    Listen(listenfd);
+
+    printf("Awaiting for clients...\n");
+
+    while (1) {
+        connfd = Accept(listenfd, (struct sockaddr *)&clie, NULL);
+        printf("Connection accepted\n");
+        if ( (pid = fork()) == 0) {
+            Close(listenfd);
+
+            while( (read_size = read(connfd , buf , MAXDATASIZE)) > 0 ) {
+                buf[read_size] = 0;
+                printf("%s\n", buf);
+
+                /* Open the command for reading. */
+                fp = popen(buf, "r");
+                if (fp == NULL) {
+                    printf("Failed to run command\n" );
+                    Close(connfd);
+                    exit(1);
+                }
+
+                /* Read the output a line at a time - output it. */
+                while (fgets(path, sizeof(path)-1, fp) != NULL) {
+                    // printf("%s", path);
+                    strcat(outt, path);
+                }
+
+                /* close */
+                pclose(fp);
+
+                write(connfd , outt , strlen(outt));
+                outt[0] = 0;
+                path[0] = 0;
+            }
+
+            if(read_size == 0) {
+                printf("Client disconnected\n");
+                fflush(stdout);
+            }
+
+            Close(connfd);
+            exit(0);
+        }
+        Close(connfd);
+    }
+
+   return 0;
 }

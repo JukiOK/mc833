@@ -65,15 +65,15 @@ int main(int argc, char **argv) {
 
    // read vai tentar ouvir até 4096 bytes de sockfd e atribuir isso ao buffer recvline. A função retornará o valor total de bytes lidos
    // Essa leitura acontecerá até n retornar 0 (fim de arquivo) ou um número negativo (erro)
-   char command[MAXLINE+1];
+   char command[MAXLINE];
    while (1) {
-     scanf("%s", command);
+     fgets (command, MAXLINE, stdin);
      write(sockfd, command, strlen(command));
-   }
-
-   if (n < 0) {
-      perror("read error");
-      exit(1);
+     if( (n = read(sockfd , recvline , MAXLINE)) > 0 ) {
+         recvline[n] = 0;
+         printf("Resposta do servidor:\n");
+         printf("%s\n", recvline);
+     }
    }
 
    exit(0);

@@ -38,8 +38,8 @@ int Accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen) {
     return acceptedfd;
 }
 
-void Listen(int sockfd) {
-    if (listen(sockfd, 10) == -1) {
+void Listen(int sockfd, int backlog) {
+    if (listen(sockfd, backlog) == -1) {
         perror("listen");
         exit(1);
     }
@@ -83,7 +83,7 @@ int main (int argc, char **argv) {
     struct in_addr ipAddr;
     struct sockaddr_in *pV4Addr;
 
-    if (argc != 2) {
+    if (argc != 3) {
       printf("%d", argc);
       printf("Define which port this server will use!\n");
       exit(1);
@@ -101,8 +101,8 @@ int main (int argc, char **argv) {
 
     printf("Bind successfull\n");
 
-    //Queue size doesn't matter
-    Listen(listenfd);
+    //Queue size been passed
+    Listen(listenfd, atoi(argv[2]));
 
     printf("Awaiting for clients...\n");
 
@@ -123,7 +123,6 @@ int main (int argc, char **argv) {
                 buf[read_size] = 0;
                 Print(address, port, buf);
                 // printf("%s\n", buf);
-
                 /* Open the command for reading. */
                 fp = popen(buf, "r");
                 if (fp == NULL) {
@@ -163,10 +162,10 @@ int main (int argc, char **argv) {
                 printf("Client disconnected -> %s:%d\n", address, ntohs(pV4Addr->sin_port));
                 fflush(stdout);
             }
-
             Close(connfd);
             exit(0);
         }
+        sleep(30);
         Close(connfd);
     }
 

@@ -108,6 +108,7 @@ int main (int argc, char **argv) {
 
     while (1) {
     	bzero(&clientaddr, sizeof(clientaddr));
+	sleep(20);
         connfd = Accept(listenfd, (struct sockaddr *) &clientaddr, &c);
 
     	pV4Addr = (struct sockaddr_in *)&clientaddr;
@@ -165,7 +166,7 @@ int main (int argc, char **argv) {
             Close(connfd);
             exit(0);
         }
-        sleep(30);
+      
         Close(connfd);
     }
 

@@ -143,10 +143,9 @@ int main (int argc, char **argv) {
     Listen(listenfd, atoi(argv[2]));
     Signal (SIGCHLD, sig_chld);
     printf("Awaiting for clients...\n");
-
+    sleep(100);
     while (1) {
     	bzero(&clientaddr, sizeof(clientaddr));
-      sleep(2);
       connfd = Accept(listenfd, (struct sockaddr *) &clientaddr, &c);
 
     	pV4Addr = (struct sockaddr_in *)&clientaddr;
